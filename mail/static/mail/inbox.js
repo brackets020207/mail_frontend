@@ -5,10 +5,29 @@ document.addEventListener('DOMContentLoaded', function() {
   document.querySelector('#sent').addEventListener('click', () => load_mailbox('sent'));
   document.querySelector('#archived').addEventListener('click', () => load_mailbox('archive'));
   document.querySelector('#compose').addEventListener('click', compose_email);
+  document.querySelector('#compose-view').addEventListener('submit', send_email);
 
   // By default, load the inbox
   load_mailbox('inbox');
 });
+
+
+
+function send_email() {
+  fetch('/emails', {
+    method: 'POST',
+    body: JSON.stringify({
+        recipients: document.querySelector('#compose-recipients').value,
+        subject: document.querySelector('#compose-subject').value,
+        body: document.querySelector('#compose-body').value
+    })
+  })
+  .then(response => response.json())
+  .then(result => {
+      // Print result
+      console.log(result);
+  });
+}
 
 function compose_email() {
 
@@ -27,7 +46,70 @@ function load_mailbox(mailbox) {
   // Show the mailbox and hide other views
   document.querySelector('#emails-view').style.display = 'block';
   document.querySelector('#compose-view').style.display = 'none';
+  document.querySelector('#email-view').style.display = 'none';
 
   // Show the mailbox name
   document.querySelector('#emails-view').innerHTML = `<h3>${mailbox.charAt(0).toUpperCase() + mailbox.slice(1)}</h3>`;
+  fetch(`/emails/${mailbox}`)
+  .then (response => response.json())
+  .then (emails => emails.forEach(element => {
+
+      const email = document.createElement("div");
+      const sender = document.createElement("div");
+      const time = document.createElement("div");
+      const subject = document.createElement("div");
+
+      email.className = 'email';
+      sender.className = 'inbox_sender';
+      time.className = 'inbox_time';
+      subject.className= 'inbox_subject';
+
+      sender.innerHTML = `From: ${element.sender}`;
+      time.innerHTML = element.timestamp;
+      subject.innerHTML = element.subject;
+      console.log(element.read);
+      if (element.read == true) {
+        email.style.backgroundColor = "#f2f6fc";
+        email.style.borderColor = "#cccccc";
+      } else {
+        email.style.backgroundColor = "#ffffff";
+      }
+      email.append(sender);
+      email.append(time);
+      email.append(subject);
+
+      email.addEventListener('click', () => view_email(element))
+
+      document.querySelector("#emails-view").append(email);
+
+    }));
 }
+
+function view_email(email) {
+  document.querySelector("#email-view").innerHTML = "";
+  fetch (`/emails/${email.id}`, {
+    method: 'PUT',
+    body: JSON.stringify({
+        read: true
+    })
+  })
+  document.querySelector('#emails-view').style.display = 'none';
+  document.querySelector('#email-view').style.display = 'block'; 
+  
+
+  const sender = document.createElement("div");
+  const time = document.createElement("div");
+  const subject = document.createElement("div");
+  const body = document.createElement("div");
+
+  body.innerHTML = email.body;
+  subject.innerHTML = email.subject;
+  sender.innerHTML = `From: ${email.sender}`;
+  time.innerHTML = email.timestamp;
+
+  document.querySelector("#email-view").append(sender);
+  document.querySelector("#email-view").append(time);
+  document.querySelector("#email-view").append(subject);
+  document.querySelector("#email-view").append(body);
+  
+};

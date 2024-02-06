@@ -1,3 +1,15 @@
 textarea {
     min-height: 400px;
 }
+
+.email {
+    border-radius: 3px;
+    border-style: solid;
+    margin-bottom: 10px;
+    padding: 10px;
+}
+
+.inbox_time {
+    font-size: 12px;
+    font-weight: 300;
+}   
