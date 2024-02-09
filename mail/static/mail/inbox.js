@@ -19,7 +19,7 @@ function send_email() {
     body: JSON.stringify({
         recipients: document.querySelector('#compose-recipients').value,
         subject: document.querySelector('#compose-subject').value,
-        body: document.querySelector('#compose-body').value
+        body: document.querySelector('#compose-body').value.replaceAll("\n", "<br>")
     })
   })
   .then(response => response.json())
@@ -33,6 +33,7 @@ function compose_email() {
 
   // Show compose view and hide other views
   document.querySelector('#emails-view').style.display = 'none';
+  document.querySelector('#email-view').style.display = 'none';
   document.querySelector('#compose-view').style.display = 'block';
 
   // Clear out composition fields
@@ -83,7 +84,23 @@ function load_mailbox(mailbox) {
       document.querySelector("#emails-view").append(email);
 
     }));
-}
+};
+
+function f_reply(email) {
+  document.querySelector('#email-view').style.display = 'none';
+  document.querySelector('#emails-view').style.display = 'none';
+  document.querySelector('#compose-view').style.display = 'block';
+
+  // Clear out composition fields
+  document.querySelector('#compose-recipients').value = email.sender;
+  if (email.subject.slice(0, 3) == "Re:") {
+    document.querySelector('#compose-subject').value = email.subject;
+  } else {
+    document.querySelector('#compose-subject').value = `Re: ${email.subject}`;
+  }
+  document.querySelector('#compose-body').value = `\n---\nOn  ${email.timestamp}, ${email.sender} wrote:\n${email.body.replaceAll("<br>", "\n")}\n`;
+};
+
 
 function view_email(email) {
   document.querySelector("#email-view").innerHTML = "";
@@ -99,17 +116,58 @@ function view_email(email) {
 
   const sender = document.createElement("div");
   const time = document.createElement("div");
+  const recipients = document.createElement("div");
   const subject = document.createElement("div");
   const body = document.createElement("div");
+  const archive = document.createElement("button");
+  const reply = document.createElement("button");
+
+  reply.innerHTML = "Reply";
+
+  if (!email.archived) {
+    archive.innerHTML = "Archive";
+  } else {
+    archive.innerHTML = "Unarchive";
+  }
+  
+  archive.className ="btn btn-sm btn-outline-primary";
+  reply.className = "btn btn-sm btn-outline-primary";
+  archive.addEventListener("click", function () {
+    fetch (`/emails/${email.id}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+          archived: !email.archived
+      })
+    })
+    .then ((response) => load_mailbox('inbox'));
+  })
+
+  reply.addEventListener("click", () => f_reply(email));
+
 
   body.innerHTML = email.body;
   subject.innerHTML = email.subject;
   sender.innerHTML = `From: ${email.sender}`;
   time.innerHTML = email.timestamp;
+  recipients.innerHTML = `To: ${email.recipients.join(', ')}`;
 
-  document.querySelector("#email-view").append(sender);
-  document.querySelector("#email-view").append(time);
-  document.querySelector("#email-view").append(subject);
-  document.querySelector("#email-view").append(body);
+  time.className = 'inbox_time';
+  subject.className = 'email_subject';
+
+  const email_v = document.querySelector("#email-view");
+  
+  email_v.append(subject);
+  email_v.append(document.createElement("hr"));
+  email_v.append(sender);
+  email_v.append(recipients);
+  email_v.append(document.createElement("hr"));
+  email_v.append(time);
+  email_v.append(body);
+  email_v.append(document.createElement("hr"));
+  email_v.append(reply);
+  email_v.append(archive);
+  
+  
   
 };
+
